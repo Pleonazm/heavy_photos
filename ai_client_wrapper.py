@@ -3,7 +3,13 @@ from openai import OpenAI
 from dotenv import dotenv_values
 from pprint import pprint
 from functools import wraps
+from io import BytesIO
+import requests
 
+import base64
+from pathlib import Path
+from io import BytesIO
+from typing import Union
 
 
 @dataclass
@@ -20,9 +26,59 @@ class AI_Client_Call_Wrapper():
                           })
     
     @classmethod
+    """Shortcut"""
     def make_from_key(cls, api_key):
         ai_client = OpenAI(api_key=api_key)
         return cls(api_key=api_key, ai_client=ai_client)
+    
+
+    def get_file_data(url:str|Path):
+
+        content = None
+        info = None
+
+        if Path(url).is_file:
+
+            # content = {'content': Path.open(url), 'type': url.suffix[1::]}
+            content = Path.open(url)
+            info = f'local file {url}'
+
+        elif isinstance(url, str):
+            content = requests.get(url).content
+            info = f"remote file {url}"
+
+        else:
+            content = None
+            info = f'Wrong url: {url}'
+
+        return content, info
+
+
+
+
+
+    def prepare_image_for_open_ai(image_input: Union[str, Path, BytesIO], mime: str = 'image/png') -> str:
+        """
+        Prepares an image for OpenAI by encoding it as a base64 data URL.
+
+        Args:
+            image_input (Union[str, Path, BytesIO]): The image input, which can be a file path (str or Path) or a BytesIO object.
+            mime (str): The MIME type of the image (default is 'image/png').
+
+        Returns:
+            str: A base64-encoded data URL representing the image.
+        """
+        if isinstance(image_input, (str, Path)):
+            # Handle file path (str or Path)
+            with open(image_input, "rb") as f:
+                image_data = base64.b64encode(f.read()).decode('utf-8')
+        elif isinstance(image_input, BytesIO):
+            # Handle BytesIO object
+            image_data = base64.b64encode(image_input.getvalue()).decode('utf-8')
+        else:
+            raise TypeError("Unsupported type for image_input. Expected str, Path, or BytesIO.")
+
+        return f"data:{mime};base64,{image_data}"
 
 
     
@@ -41,8 +97,8 @@ class AI_Client_Call_Wrapper():
             return func(self, *args, **kwargs)
         return wrapper
 
-    def get_ai_client(self):
-        self.ai_client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+    def get_ai_client(self, **kwargs):
+        self.ai_client = OpenAI(api_key=self.api_key, base_url=self.base_url, **kwargs)
         info = 'AI Client created'
         return True, info
     
