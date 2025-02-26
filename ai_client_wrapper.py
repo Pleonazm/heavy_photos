@@ -13,6 +13,8 @@ from pydantic import BaseModel
 import base64
 import json
 
+from typing import Any
+
 # from typing import Union
 # from typing import Union, Tuple
 
@@ -196,7 +198,7 @@ class AI_Client_Call_Wrapper():
         result = f"IMage DATA: {image_desriptor}"
         info = 'image created'
         
-        return info, result
+        return result, info
 
 
 
@@ -262,6 +264,15 @@ class AI_Client_Call_Wrapper():
             result = response.choices[0].message.content
         info = f'IMage Text for image {img_name}'
         return result, info
+    
+    def check_text_image_prompt(user_prompt:str=None, system_prompt:str=None):
+        prompts = {}
+        default_system_prompt = 'Jesteś doświadczonym analitykiem obrazów'
+        default_user_prompt = "Stwórz opis obrazka, jakie widzisz tam elementy?"
+        if user_prompt is None:
+            prompts['user'] = default_user_prompt
+            prompts['system'] = default_system_prompt
+        return prompts
  
 
     
