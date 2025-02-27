@@ -71,10 +71,13 @@ class DataStorage():
         if self.save_method in save_functions:
             save_functions[self.save_method](*args, **kwargs)
         else:
-            raise StorageError('Wrong Save Function')
+            raise StorageError('Wrong Save Fusyntetynction')
     @compute_hash
-    def load_http_get(self,url):
-        resp = requests.get(url=url)
+    def load_http_get(self,uri:str=None):
+        if uri:
+            resp = requests.get(url=uri)
+        else:
+            resp = requests.get(url=self.uri)
         resp.raise_for_status()
         self.raw_data = resp.content
         # if resp.status_code == 404:
@@ -83,8 +86,11 @@ class DataStorage():
         #     self.raw_data = resp.content
 
     @compute_hash
-    def load_file(self, load_path):
-        load_path = Path(load_path)
+    def load_file(self, load_path:str|Path=None):
+        if load_path:
+            load_path = Path(load_path)
+        else:
+            load_path = Path(self.uri)
         with open(load_path, mode='rb') as f:
             self.raw_data = f.read()
 
