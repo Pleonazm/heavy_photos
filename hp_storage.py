@@ -61,6 +61,8 @@ class DataStorage():
             raise StorageError('Remote post error')
         
     def save_aws_s3(self):
+        if not self.configs['aws_s3']:
+            raise StorageError('No AWS S3 Config')
         #use AWS SDK to connect, using self.configs
         pass
 
@@ -95,6 +97,8 @@ class DataStorage():
             self.raw_data = f.read()
 
     def load_aws_s3(self):
+        if not self.configs['aws_s3']:
+            raise StorageError('No AWS S3 Config')
         #use AWS SDK to connect, using self.configs
         pass
 
