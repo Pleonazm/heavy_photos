@@ -19,12 +19,13 @@ class StorageError(Exception):
 
 
 @dataclass
-class Storage():
+class DataStorage():
     raw_data: bytes = None
     save_method:str = ''
     load_method:str = ''
     configs:dict[dict] = field(default_factory=dict)
     hash:str = None
+    uri:str|Path = None
 
     def configure_s3(self, aws_access_key_id, aws_secret_access_key, aws_endpoint_url_s3):
         self.configs['aws_s3']['aws_access_key_id'] = aws_access_key_id
@@ -39,7 +40,8 @@ class Storage():
             result = method(self, *args, **kwargs)
 
             # Compute hash only if self.raw_data is set
-            if hasattr(self, 'raw_data') and isinstance(self.raw_data, bytes):
+            if hasattr(self, 'raw_data'):
+            # if hasattr(self, 'raw_data') and isinstance(self.raw_data, bytes):
                 self.hash = hashlib.sha256(self.raw_data).hexdigest()
             else:
                 raise AttributeError("self.raw_data is not set or is not of type bytes.")
@@ -99,3 +101,6 @@ class Storage():
             load_functions[self.load_method](*args, **kwargs)
         else:
             raise StorageError('Wrong Load Function')
+
+
+        
