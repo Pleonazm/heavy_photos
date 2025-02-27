@@ -110,3 +110,13 @@ class DataStorage():
 
 
         
+@dataclass
+class MetaDataStorage:
+
+    id: str = None
+    description: str = None
+    uri: str|Path = None
+    tags: list[str] = field(default_factory=list)
+
+    def get_as_dict(self):
+        return self.__dict__
