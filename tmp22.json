@@ -1,0 +1,18 @@
+[
+{
+"uri": "tmp.png",
+"id": 1,
+"description": "Local File",
+"hash": "1111",
+"tags": ["t1", "t2"],
+"load_method": "file"
+},
+{
+"uri": "https://yt3.ggpht.com/ytc/AIdro_mnc274oAJKr3swPp8H0RQVGT5dXTQFZ05KmZwSuS-3HA=s48-c-k-c0x00ffffff-no-rj",
+"id": 2,
+"description": "Remote File",
+"hash": "2222",
+"tags": ["t3", "t4"],
+"load_method": "http_get"
+}
+]

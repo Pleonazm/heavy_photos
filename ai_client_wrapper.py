@@ -49,8 +49,9 @@ class AI_Client_Call_Wrapper():
         # return cls(api_key=api_key, ai_client=ai_client, instruct={'model': ai_model, 'response_model': response_model})
         
     def change_into_instructor(self, response_model)-> None:
+        #Not Working
         self.ai_client = instructor.from_openai(self.ai_client)
-        self.instruct['response_model'] = response_model
+        # self.instruct['response_model'] = response_model
 
     # def get_file_data(self, url:str|Path):
     #     content = None
@@ -149,7 +150,7 @@ class AI_Client_Call_Wrapper():
             # Handle raw bytes
             image_data = base64.b64encode(image_input).decode('utf-8')
         else:
-            raise TypeError("Unsupported type for image_input. Expected str, Path, BytesIO, BufferedReader, or bytes.")
+            raise TypeError(f"Unsupported {type(image_input)} type for image_input. Expected str, Path, BytesIO, BufferedReader, or bytes.")
 
         return f"data:{mime};base64,{image_data}"
 

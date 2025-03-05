@@ -1,17 +1,27 @@
+#System
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from benedict import benedict
-
+from pathlib import Path
 from pprint import pprint
-
-from hp_storage import DataStorage, MetaDataStorage
+import json
+import sqlite3
+import re
+#3rd Party
+from benedict import benedict
+#Local
+from hp_storage import DataStoragePhysical, MetaDataStorage
 
 
 # Step 1: Define an abstract base class (interface) for data loaders
-class DataLink(ABC):
+class DataLink(ABC): #RAW Data Loader
     @abstractmethod
     def load_data(self):
-        """Load data from a source."""
+        """Load all data from a source."""
+        pass
+
+    @abstractmethod
+    def load_object_row(self, field, value):
+        """Load one single object"""
         pass
 
     def replace_data(self):
@@ -26,17 +36,31 @@ class DataLink(ABC):
         """Exports data."""
         pass
 
+
 # Step 2: Implement concrete data loaders
 @dataclass
 class JSONDataLink(DataLink):
 
     file_path:str = ''
 
+    def __post_init__(self):
+        self.file_path = Path(self.file_path)
+
     def load_data(self) -> dict|benedict:
-        loaded_data = benedict(self.file_path, format='json')
-        return loaded_data['values']
-        # with open(self.file_path, "r") as file:
-        #     return file.read()
+        if self.file_path.exists():
+            content = Path(self.file_path).read_text(encoding="UTF-8")
+            loaded_data = json.loads(content)
+        else:
+            loaded_data = False
+        return loaded_data
+        # loaded_data = benedict(self.file_path, format='json')
+        # return loaded_data['values']
+        # # with open(self.file_path, "r") as file:
+        # #     return file.read()
+
+    def load_object_row(self, field:str, value:str):
+        pass
+        
 
     def replace_data(self, new_data:dict|benedict) -> None:
         self.write_data(new_data)
@@ -50,7 +74,64 @@ class JSONDataLink(DataLink):
 
     def write_data(self, new_data:dict|benedict) -> None:
         data_to_write = benedict(new_data)
-        data_to_write.to_json(file_path=self.file_path)
+        data_to_write.to_json(filepath=self.file_path)
+
+#placeholder
+@dataclass
+class SQLIteDataLink(DataLink):
+
+    file_path: str|Path = None
+    db_connect = None
+    # table_name: str = None
+
+    def __post_init__(self):
+        self.file_path = Path(self.file_path)
+        self.db_connect = sqlite3.connect(self.file_path)
+        # table_name = self.sanitize(table_name)
+
+    def sanitize(to_sanitize:str)->str:
+        regexp = r"[^a-zA-z0-9_]"
+        rc = re.compile(regexp)
+        sanitized_str = re.sub(rc,'',to_sanitize)
+        return sanitized_str
+    
+    def create_select_query(self,  table_name:str,fields:list[str]=None, values:list[str]=None):
+        table_name = self.sanitize(table_name)
+        if not fields:
+            query = f"SELECT * FROM {table_name}"
+        else:
+            fields_str = ', '.join(fields)
+            query = f"SELECT {fields_str} from {table_name}  WHERE "
+
+
+
+    def load_data(self,  table_name:str,fields:list[str]=None, values:list[str]=None)->list[str]|bool:
+        table_name = self.sanitize(table_name)
+
+        # self.file_path = Path(self.file_path)
+        fields_str = ', '.join(fields)
+        if self.file_path.exists():
+            con = sqlite3.connect(self.file_path)
+            cur = con.cursor()
+            cur.execute(f"SELECT * FROM {table_name}")
+            loaded_data = cur.fetchall()
+            con.close()
+
+        else:
+            loaded_data = False
+        return loaded_data
+    
+    def load_object_row(self, field:str, value:str, table:str):
+        query = f"""SELECT * FROM {self.sanitize(table)}
+                    WHERE {self.sanitize(field)} = ?"""
+        rows = []
+        try:
+            with self.db_connect:
+                rows = self.db_connect.execute(query,(value,)).fetchall()
+        except:
+            pass
+        
+        return rows
 
 #placeholder
 class DatabaseDataLink(DataLink):
@@ -76,7 +157,7 @@ class DataLoader():
     data_link:DataLink
     # data_storage:list[DataStorage] = field(default_factory=list)
     # metadata_storage:list[MetaDataStorage] = field(default_factory=list)
-    data_objects:list[DataStorage|MetaDataStorage] = field(default_factory=list)
+    data_objects:list[DataStoragePhysical|MetaDataStorage] = field(default_factory=list)
     
 
     def load_data(self, id=None):
@@ -96,7 +177,7 @@ class DataLoader():
         data_item_row['id'] = data_item_row['hash']
         data = {k:v for k,v in data_item_row.items() if k in ['hash', 'uri', 'load_method']}
         metadata = {k:v for k,v in data_item_row.items() if k in ['id', 'description', 'tags', 'uri']}
-        item_row = {'data': DataStorage(**data), 'metadata': MetaDataStorage(**metadata)}
+        item_row = {'data': DataStoragePhysical(**data), 'metadata': MetaDataStorage(**metadata)}
         return item_row
 
 

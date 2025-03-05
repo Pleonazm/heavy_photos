@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import Path
@@ -19,7 +20,7 @@ class StorageError(Exception):
 
 
 @dataclass
-class DataStorage():
+class DataStoragePhysical():
     raw_data: bytes = None
     save_method:str = ''
     load_method:str = ''
@@ -73,7 +74,7 @@ class DataStorage():
         if self.save_method in save_functions:
             save_functions[self.save_method](*args, **kwargs)
         else:
-            raise StorageError('Wrong Save Fusyntetynction')
+            raise StorageError('Wrong Save Function')
     @compute_hash
     def load_http_get(self,uri:str=None):
         if uri:
@@ -96,6 +97,7 @@ class DataStorage():
         with open(load_path, mode='rb') as f:
             self.raw_data = f.read()
 
+    @compute_hash
     def load_aws_s3(self):
         if not self.configs['aws_s3']:
             raise StorageError('No AWS S3 Config')
@@ -124,3 +126,18 @@ class MetaDataStorage:
 
     def get_as_dict(self):
         return self.__dict__
+
+
+
+
+@dataclass
+class ObjectIndex:
+
+    full_data:list = None # {id/hash:'', load_method:'', uri:''}
+    data_link = None #DataLink
+
+class IndexLoader(ABC):
+    @abstractmethod
+    def load_data(self):
+        """Load data from a source."""
+        pass
