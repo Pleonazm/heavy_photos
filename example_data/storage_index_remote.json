@@ -1,0 +1,1 @@
+[{"id": "3b42e886e2651bd70047b2131762ed646052fa33efdea12579c70011e76026c4", "uri": "http://localhost:9000/dino.png", "load_method": "http_get"}, {"id": "c3545bf0088c0e993f74e4fbe3000dc68660819006ab91187f2a36c1caa81211", "uri": "http://localhost:9000/monk.jpg", "load_method": "http_get"}]
