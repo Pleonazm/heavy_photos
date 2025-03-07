@@ -1,7 +1,9 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import Path
 from functools import wraps
+import json
 
 import requests
 import hashlib
@@ -19,7 +21,7 @@ class StorageError(Exception):
 
 
 @dataclass
-class DataStorage():
+class DataStoragePhysical():
     raw_data: bytes = None
     save_method:str = ''
     load_method:str = ''
@@ -73,7 +75,7 @@ class DataStorage():
         if self.save_method in save_functions:
             save_functions[self.save_method](*args, **kwargs)
         else:
-            raise StorageError('Wrong Save Fusyntetynction')
+            raise StorageError('Wrong Save Function')
     @compute_hash
     def load_http_get(self,uri:str=None):
         if uri:
@@ -95,7 +97,12 @@ class DataStorage():
             load_path = Path(self.uri)
         with open(load_path, mode='rb') as f:
             self.raw_data = f.read()
+    
+    @compute_hash
+    def load_raw(self,raw_data:bytes):
+        self.raw_data = raw_data
 
+    @compute_hash
     def load_aws_s3(self):
         if not self.configs['aws_s3']:
             raise StorageError('No AWS S3 Config')
@@ -105,7 +112,7 @@ class DataStorage():
 
 
     def load(self, *args, **kwargs):
-        load_functions = {'file': self.load_file, 'http_get': self.load_http_get, 'aws_s3': self.load_aws_s3}
+        load_functions = {'file': self.load_file, 'http_get': self.load_http_get, 'aws_s3': self.load_aws_s3,'raw':self.load_raw}
         
         if self.load_method in load_functions:
             load_functions[self.load_method](*args, **kwargs)
@@ -124,3 +131,135 @@ class MetaDataStorage:
 
     def get_as_dict(self):
         return self.__dict__
+
+
+
+class BasicCRUDInterface(ABC):
+
+    @abstractmethod
+    def make(self) -> None:
+        pass
+    def remake(self, data=None):
+        pass
+    @abstractmethod
+    def unmake(self) -> bool:
+        pass
+
+
+    def add(self, data:dict) -> None:
+        pass
+    def get(self, id:str) -> dict:
+        pass
+    def get_all(self) -> list:
+        pass
+    def find(self, data:dict) -> dict:
+        pass
+    def update(self, data:dict) -> dict:
+        pass
+    def delete(self, id:str):
+        pass
+    def delete_all(self) -> bool:
+        pass
+
+
+@dataclass
+class DataStorageIndexJSON(BasicCRUDInterface):
+
+    uri:str|Path
+    full_index_data:list = field(default_factory=list)
+    not_saved:bool = True
+
+    def __post_init__(self):
+        self.uri = Path(self.uri)
+
+    def _set_uri(self, uri:str|Path):
+        self.uri = Path(uri)
+
+    def make(self) -> bool:
+        self.uri.touch(self.url, exist_ok=True)
+        return True
+    
+    def add(self, data:dict) -> None:
+        self.full_index_data.append(data)
+        self.not_saved = True
+
+    def get(self, id:str) -> dict:
+        found = [obj for obj in self.full_index_data if obj['id'] in [id]]
+
+        return found[0]
+
+
+    def get_all(self) -> list:
+        # self.full_index_data = self.uri.open(encoding='UTF-8')
+        read_txt = self.uri.read_text()
+        self.full_index_data = json.loads(read_txt)
+        return self.full_index_data
+
+    def find(self, data:dict) -> dict:#only supports one pair for now
+        if self.full_index_data:
+            pass
+        else:
+            self.get_all()
+        keys = data.keys()
+        values = data.values()
+
+        found_list = []
+
+        #temp for one k/v pair
+        for field, value in data.items():
+            found = [obj for obj in self.full_index_data if obj[field] == value]
+
+        return found
+    
+    def update(self, id:str, data:dict) -> dict:
+        found_obj = self.get(id)
+        if found_obj:
+            self.full_index_data.remove(found_obj)
+            found_obj.update(data)
+            self.full_index_data.append(found_obj)
+            self.not_saved = True
+            return found_obj
+        else:
+            return {}
+    
+
+
+        pass
+    def delete(self,id:str):
+        found = self.get(id)
+        self.full_index_data.remove(found)
+        self.not_saved = True
+
+    def delete_all() -> bool:
+        pass
+    def remake(self, data=None, forced:bool=False):
+        if not data:
+            data = self.full_index_data
+        json_dump = json.dumps(data)
+        if forced or self.not_saved:
+            self.uri.write_text(data=json_dump, encoding='utf-8')
+        else:
+            print('No need to save, or not forced')
+        self.not_saved = False
+    
+    def unmake(self) -> bool:
+        # try:
+            self.uri.unlink()
+            return True
+        # except FileNotFoundError:
+        #     print("File not found. Nothing to remove.")
+        #     return False
+
+
+
+@dataclass
+class ObjectIndex:
+
+    full_data:list = None # {id/hash:'', load_method:'', uri:''}
+    data_link = None #DataLink
+
+class IndexLoader(ABC):
+    @abstractmethod
+    def load_data(self):
+        """Load data from a source."""
+        pass
