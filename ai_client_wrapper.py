@@ -30,7 +30,7 @@ class AI_Client_Call_Wrapper():
     configs:dict[dict] = field(default_factory=lambda:
                          {'text_text': {'model': 'gpt-4o-mini'},
                           'text_image': {'model': 'dall-e-2'},
-                          'text_embeddings': {'model': 'text-embedding-3-small', 'dim': 1536},
+                          'text_embeddings': {'model': 'text-embedding-3-small', 'dimensions': 1536},
                           'image_text': {'model':'gpt-4o-mini'},
                           #{'model': 'gpt-4-vision-preview'}#{'model':'gpt-4o-mini'}
                           })
@@ -49,8 +49,9 @@ class AI_Client_Call_Wrapper():
         # return cls(api_key=api_key, ai_client=ai_client, instruct={'model': ai_model, 'response_model': response_model})
         
     def change_into_instructor(self, response_model)-> None:
+        #Not Working
         self.ai_client = instructor.from_openai(self.ai_client)
-        self.instruct['response_model'] = response_model
+        # self.instruct['response_model'] = response_model
 
     # def get_file_data(self, url:str|Path):
     #     content = None
@@ -149,7 +150,7 @@ class AI_Client_Call_Wrapper():
             # Handle raw bytes
             image_data = base64.b64encode(image_input).decode('utf-8')
         else:
-            raise TypeError("Unsupported type for image_input. Expected str, Path, BytesIO, BufferedReader, or bytes.")
+            raise TypeError(f"Unsupported {type(image_input)} type for image_input. Expected str, Path, BytesIO, BufferedReader, or bytes.")
 
         return f"data:{mime};base64,{image_data}"
 
@@ -208,6 +209,7 @@ class AI_Client_Call_Wrapper():
 
         raw_result = self.ai_client.embeddings.create(input=[text_to_emb],
                                                       model=self.configs['text_embeddings']['model'],
+                                                      dimensions=self.configs['text_embeddings']['dimensions']
                                                       )
         
         result = raw_result.data[0].embedding
