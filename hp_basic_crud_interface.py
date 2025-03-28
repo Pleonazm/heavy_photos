@@ -32,3 +32,6 @@ class BasicCRUDInterface(ABC):
     @abstractmethod
     def delete_all(self) -> bool:
         raise NotImplementedError("Subclasses must implement this method.")
+
+
+
