@@ -249,21 +249,29 @@ if __name__ == "__main__":
 
     # pprint(ac.call_text_text('How many limbs a centipede has?', 'You are experienced zoologist answer clearly and concise'))#OK
     # pprint(ac.call_text_embeddings('hello world'))#OK
-    ig = [['tmp.jpg', 'image/jpeg'], ['tmp.png', 'image/png']]
+    # ig = [['tmp.jpg', 'image/jpeg'], ['tmp.png', 'image/png']]
 
-    ready_urls = []
+    # ready_urls = []
 
-    for i in ig:
-        idata, info = ac.get_file_data(i[0])
-        iprep = ac.prepare_image_for_open_ai(idata, i[1])
-        ready_urls.append([iprep, i[0]])
+    # for i in ig:
+    #     idata, info = ac.get_file_data(i[0])
+    #     iprep = ac.prepare_image_for_open_ai(idata, i[1])
+    #     ready_urls.append([iprep, i[0]])
 
     # print(ready_urls)
 
 
     ac2 = AI_Client_Call_Wrapper.make_from_key(api_key=env["OPENAI_API_KEY"])
 
-    # pprint(ac2)
+    ac3 = AI_Client_Call_Wrapper.make_instructor(api_key=env["OPENAI_API_KEY"])
+
+
+    pprint(ac2)
+    pprint(ac3)
+
+    tst = 'The image displays a network topology diagram created using GNS3 software.'
+    emb, info = ac3.call_text_embeddings(tst)
+    pprint(emb[::10])
 
     # dump_dic = []
 
@@ -289,9 +297,6 @@ if __name__ == "__main__":
     # print(aci)
     # ac2.change_into_instructor(response_model=UserInfo)
     # print(ac2)
-
-
-
 
 
 
