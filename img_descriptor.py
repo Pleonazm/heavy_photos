@@ -124,14 +124,14 @@ class ImgDescriptor:
 if __name__ == '__main__':
     env = dotenv_values(".env")
 
-    i = DataStoragePhysical(uri='ssss', raw_data=b"1234567899567432232798763423467", load_method='FILE') 
-    idd = ImgDescriptor(img_storage=i)
+    # i = DataStoragePhysical(uri='ssss', raw_data=b"1234567899567432232798763423467", load_method='FILE') 
+    # idd = ImgDescriptor(img_storage=i)
 
-    d = idd.dump()
+    # d = idd.dump()
 
-    print(idd)
-    print('--------------------------------')
-    print(d)
+    # print(idd)
+    # print('--------------------------------')
+    # print(d)
 
 
 
