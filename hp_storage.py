@@ -4,6 +4,8 @@ from io import BytesIO
 from pathlib import Path
 from functools import wraps
 import json
+import base64
+import copy
 
 import requests
 import hashlib
@@ -120,6 +122,13 @@ class DataStoragePhysical():
             load_functions[self.load_method](*args, **kwargs)
         else:
             raise StorageError('Wrong Load Function')
+        
+    def dump(self) -> dict:
+        """Dumps data into a serializable dictionary"""
+        dump_dict = copy.deepcopy(self.__dict__)
+        dump_dict['raw_data'] = base64.b64encode(self.raw_data).decode("utf-8")
+        return dump_dict
+        
 
 
         
@@ -177,3 +186,21 @@ class IndexLoader(ABC):
     def load_data(self):
         """Load data from a source."""
         pass
+if __name__ == '__main__':
+    pass
+
+    # #Temporary quick/dirty test, do proper testing later
+
+    # ds1 = DataStoragePhysical(uri='test_data/monk.jpg',load_method='local')
+    # ds1.load_file()
+    # ds2 = DataStoragePhysical(uri='test_data/monk.jpg', raw_data=b"23456789009876647255", load_method='local')
+    # d1 = ds1.dump()
+    # d2 = ds2.dump()
+
+    # print(ds1)
+    # print('--')
+    # print(d1)
+    # print('--')
+    # print(ds2)
+    # print('--')
+    # print(d2)
