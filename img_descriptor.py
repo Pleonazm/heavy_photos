@@ -5,6 +5,7 @@ from dotenv import dotenv_values
 from pprint import pprint
 from pydantic import BaseModel
 import json
+import copy
 
 import hashlib
 
@@ -104,6 +105,17 @@ class ImgDescriptor:
         self.img_storage.load()
         self.id = self.img_storage.hash
 
+    def dump(self) -> dict:
+        """Dumps data into a serializable dictionary"""
+        dump_dict = copy.deepcopy(self.__dict__)
+        dump_storage = self.img_storage.dump()
+        del dump_dict['img_storage']
+        del dump_dict['ai_wrapper']
+        dump_dict.update(dump_storage)
+
+        return dump_dict
+
+
     
 
 
@@ -111,6 +123,15 @@ class ImgDescriptor:
 
 if __name__ == '__main__':
     env = dotenv_values(".env")
+
+    i = DataStoragePhysical(uri='ssss', raw_data=b"1234567899567432232798763423467", load_method='FILE') 
+    idd = ImgDescriptor(img_storage=i)
+
+    d = idd.dump()
+
+    print(idd)
+    print('--------------------------------')
+    print(d)
 
 
 
