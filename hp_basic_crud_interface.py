@@ -15,13 +15,13 @@ class BasicCRUDInterface(ABC):
     def add(self, data:dict) -> None:
         raise NotImplementedError("Subclasses must implement this method.")
     @abstractmethod
-    def get(self, id:str) -> dict:
+    def get(self, fields_dict:dict) -> list:
         raise NotImplementedError("Subclasses must implement this method.")
     @abstractmethod
     def get_all(self) -> list:
         raise NotImplementedError("Subclasses must implement this method.")
     @abstractmethod
-    def find(self, data:dict) -> dict:
+    def find(self, data:dict) -> list:
         raise NotImplementedError("Subclasses must implement this method.")
     @abstractmethod
     def update(self, data:dict) -> dict:
