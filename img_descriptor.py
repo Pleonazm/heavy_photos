@@ -139,13 +139,18 @@ class ImgDescriptor:
         self.img_storage.load()
         self.id = self.img_storage.hash
 
-    def dump(self) -> dict:
+    def dump(self, flatten=True, no_raw_data=False) -> dict:
         """Dumps data into a serializable dictionary"""
+        if not self.id:
+            raise ValueError('No ID present')
         dump_dict = copy.deepcopy(self.__dict__)
-        dump_storage = self.img_storage.dump()
+        dump_storage = self.img_storage.dump(no_raw_data=no_raw_data)
         del dump_dict['img_storage']
         del dump_dict['ai_wrapper']
-        dump_dict.update(dump_storage)
+        if flatten:
+            dump_dict.update(dump_storage)
+        else:
+            dump_dict.update({'storage': dump_storage})
 
         return dump_dict
 
