@@ -202,10 +202,16 @@ class DataStoragePhysical():
             raise StorageError('Wrong Load Function')
         self.get_mime_type()
         
-    def dump(self) -> dict:
+    def dump(self, flatten=True, no_raw_data=False) -> dict: #Flatten to keep consistent interface, maybe to use in the future
         """Dumps data into a serializable dictionary"""
+        if not self.hash:
+            raise StorageError('ID or Hash requred for dump')
         dump_dict = copy.deepcopy(self.__dict__)
-        dump_dict['raw_data'] = base64.b64encode(self.raw_data).decode("utf-8")
+        if no_raw_data:
+            dump_dict['raw_data'] = ''
+        else:
+            dump_dict['raw_data'] = base64.b64encode(self.raw_data).decode("utf-8")
+
         return dump_dict
         
 
