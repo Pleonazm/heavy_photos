@@ -4,8 +4,11 @@ from pathlib import Path
 from dotenv import dotenv_values
 from pprint import pprint
 from pydantic import BaseModel
+from functools import wraps
+
 import json
 import copy
+
 
 import hashlib
 
@@ -26,6 +29,37 @@ class ImgDescriptor:
     description:str = ''
     embeddings:object = None
     tags: list[str] = field(default_factory=list)
+
+    def _enforce_proper_mime(method):
+        """Decorator to ensure self.mime is set before method execution.
+        
+        - Uses self.img_storage.guess_mime_type() if self.mime is missing.
+        - Raises ValueError if MIME type cannot be determined.
+        """
+        @wraps(method)
+        def wrapper(self, *args, **kwargs):
+            # Check if mime is already valid
+            if not self.mime:
+                # Attempt to guess from img_storage
+                if self.img_storage:
+                    raise AttributeError("No Storage Present")
+                    
+                guessed_mime = self.img_storage.get_mime_type()
+                if not guessed_mime:
+                    raise ValueError("MIME type could not be determined")
+                    
+                self.mime = guessed_mime  # Set validated mime
+            
+            # Execute the decorated method with guaranteed self.mime
+            return method(self, *args, **kwargs)
+        
+        return wrapper
+    
+    def get_mime(self):
+        if self.mime:
+            return self.mime
+        else:
+            return self.img_storage.get_mime_type()
 
 
 
@@ -87,7 +121,7 @@ class ImgDescriptor:
     
     def get_as_dict(self) -> dict:
         result_dict = {'id': self.img_storage.hash,
-                       'mime': self.mime,
+                       'mime': self.get_mime(),
                        'description': self.description,
                        'tags': self.tags,
                        'embeddings': self.embeddings,
