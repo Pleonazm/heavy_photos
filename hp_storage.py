@@ -6,9 +6,14 @@ from functools import wraps
 import json
 import base64
 import copy
+import mimetypes
+import filetype
+from urllib.parse import urlparse
 
 import requests
 import hashlib
+
+
 
 from hp_basic_crud_interface import BasicCRUDInterface
 
@@ -32,11 +37,45 @@ class DataStoragePhysical():
     configs:dict[dict] = field(default_factory=dict)
     hash:str = None
     uri:str|Path = None
+    mime:str = None
+
+
+    def _to_bytes(self) -> bytes:
+        """Convert raw_data to first 2048 bytes (handles bytes/BytesIO/files)"""
+        try:
+            if isinstance(self.raw_data, bytes):
+                return self.raw_data[:2048]
+            if isinstance(self.raw_data, BytesIO):
+                return self.raw_data.getvalue()[:2048]
+            if hasattr(self.raw_data, 'read'):
+                pos = self.raw_data.tell()
+                self.raw_data.seek(0)
+                data = self.raw_data.read(2048)
+                self.raw_data.seek(pos)
+                return data
+            return b''
+        except Exception:
+            return b''
+
+    def _extract_filename(self) -> str | None:
+        """Extract filename from URI (supports Path/str/URLs)"""
+        try:
+            uri = str(self.uri)
+            if '://' in uri:
+                path = urlparse(uri).path
+            else:
+                path = uri
+            return Path(path).name if path else None
+        except Exception:
+            return None
+
 
     def configure_s3(self, aws_access_key_id, aws_secret_access_key, aws_endpoint_url_s3):
         self.configs['aws_s3']['aws_access_key_id'] = aws_access_key_id
         self.configs['aws_s3']['aws_secret_access_key'] = aws_secret_access_key
         self.configs['aws_s3']['aws_endpoint_url_s3'] = aws_endpoint_url_s3
+
+    
 
     def compute_hash(method):
         """Decorator that computes SHA-256 hash after executing the decorated method."""
@@ -54,6 +93,34 @@ class DataStoragePhysical():
             
             return result  # Return the original method's result
         return wrapper
+    
+
+
+    def get_mime_type(self):
+        """Method to detect MIME type using class helpers"""
+
+        if self.mime:
+            return self.mime
+        
+        
+        # 1. Content-based detection
+        buffer = self._to_bytes()
+        mime = None
+        if buffer:
+            kind = filetype.guess(buffer)
+            mime = kind.mime if kind else None
+        
+        # 2. Filename fallback
+        if not mime:
+            filename = self._extract_filename()
+            if filename:
+                mime, _ = mimetypes.guess_type(filename)
+
+        
+        self.mime = mime
+        return self.mime
+
+
 
     def save_file(self, save_path):
         save_path = Path(save_path)
@@ -80,31 +147,42 @@ class DataStoragePhysical():
             save_functions[self.save_method](*args, **kwargs)
         else:
             raise StorageError('Wrong Save Function')
+        
+    
     @compute_hash
     def load_http_get(self,uri:str=None):
+
         if uri:
-            resp = requests.get(url=uri)
-        else:
-            resp = requests.get(url=self.uri)
+            self.uri = uri
+
+        resp = requests.get(url=self.uri)
         resp.raise_for_status()
         self.raw_data = resp.content
+        self.get_mime_type()
         # if resp.status_code == 404:
         #     raise StorageError('No resource found')
         # else:
         #     self.raw_data = resp.content
 
+
     @compute_hash
     def load_file(self, load_path:str|Path=None):
         if load_path:
-            load_path = Path(load_path)
-        else:
-            load_path = Path(self.uri)
+            # load_path = Path(load_path)
+            self.uri = Path(load_path)
+        # else:
+        load_path = Path(self.uri)
         with open(load_path, mode='rb') as f:
             self.raw_data = f.read()
-    
+        self.get_mime_type()
+
+
     @compute_hash
     def load_raw(self,raw_data:bytes):
         self.raw_data = raw_data
+        self.get_mime_type()
+
+
 
     @compute_hash
     def load_aws_s3(self):
@@ -122,6 +200,7 @@ class DataStoragePhysical():
             load_functions[self.load_method](*args, **kwargs)
         else:
             raise StorageError('Wrong Load Function')
+        self.get_mime_type()
         
     def dump(self) -> dict:
         """Dumps data into a serializable dictionary"""
@@ -145,57 +224,30 @@ class MetaDataStorage:
 
 
 
-# class BasicCRUDInterface(ABC):
-
-#     @abstractmethod
-#     def make(self) -> None:
-#         pass
-#     def remake(self, data=None):
-#         pass
-#     @abstractmethod
-#     def unmake(self) -> bool:
-#         pass
-#
-#
-#     def add(self, data:dict) -> None:
-#         pass
-#     def get(self, id:str) -> dict:
-#         pass
-#     def get_all(self) -> list:
-#         pass
-#     def find(self, data:dict) -> dict:
-#         pass
-#     def update(self, data:dict) -> dict:
-#         pass
-#     def delete(self, id:str):
-#         pass
-#     def delete_all(self) -> bool:
-#         pass
-
-
-
-
 @dataclass
 class ObjectIndex:
 
-    full_data:list = None # {id/hash:'', load_method:'', uri:''}
-    data_link = None #DataLink
+    full_data: list = None # {id/hash:'', load_method:'', uri:''}
+    data_link: BasicCRUDInterface = None#DataLink
 
 class IndexLoader(ABC):
     @abstractmethod
     def load_data(self):
         """Load data from a source."""
         pass
+
 if __name__ == '__main__':
     pass
 
     # #Temporary quick/dirty test, do proper testing later
 
-    # ds1 = DataStoragePhysical(uri='test_data/monk.jpg',load_method='local')
-    # ds1.load_file()
-    # ds2 = DataStoragePhysical(uri='test_data/monk.jpg', raw_data=b"23456789009876647255", load_method='local')
-    # d1 = ds1.dump()
-    # d2 = ds2.dump()
+    ds1 = DataStoragePhysical(uri='test_data/monk.jpg',load_method='local')
+    ds1.load_file()
+    ds2 = DataStoragePhysical(uri='test_data/monk.png', raw_data=b"123456", load_method='local')
+    ds3 = DataStoragePhysical(uri='test_data/dino.png', raw_data=b"123456", load_method='local')
+    ds3.load_file()
+    d1 = ds1.dump()
+    d2 = ds2.dump()
 
     # print(ds1)
     # print('--')
@@ -204,3 +256,9 @@ if __name__ == '__main__':
     # print(ds2)
     # print('--')
     # print(d2)
+
+    # print(ds1.guess_mime_type())
+    # print(ds1.mime)
+    print(ds1.mime)
+    print(ds2.mime)
+    print(ds3.mime)
