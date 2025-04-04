@@ -162,7 +162,7 @@ class AI_Client_Call_Wrapper():
 
 
     @configs_override
-    def call_text_embeddings(self, text_to_emb):
+    def call_text_embeddings(self, text_to_emb:str|list):
         print('text emb')
 
         raw_result = self.ai_client.embeddings.create(input=[text_to_emb],

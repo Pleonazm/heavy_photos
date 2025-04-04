@@ -261,7 +261,7 @@ if __name__ == '__main__':
     # print('--')
     # print(ds2)
     # print('--')
-    # print(d2)
+    # print(d2)Pixel color is (0, 0, 255), expected pure red (255, 0, 0)
 
     # print(ds1.guess_mime_type())
     # print(ds1.mime)
